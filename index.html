@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>The Lantern of Hollowmere</title>
+<meta name="theme-color" content="#0e1b17">
+<meta name="description" content="A fantasy text adventure: recover the three embers and relight the lantern of Hollowmere.">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Hollowmere">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IM+Fell+English+SC&family=Alegreya:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+/* VOICE: a fireside storyteller — warm, a little eerie, never jokey.
+   IDEA: an illuminated adventurer's journal lit by one lantern.
+   PICTURE: a layered night scene of the current place, with foes appearing in it.
+   COLOUR and TYPE: deep forest night, parchment ink, one lantern-flame orange; IM Fell English SC + Alegreya.
+   LAYOUT: title, scene, vitals, journal, then large action buttons — one column, thumb-friendly. */
+:root{color-scheme:dark;--bg:#0e1b17;--panel:#14261f;--line:#2a4237;--ink:#efe6d2;--dim:#b9b09a;--flame:#ff7a3d;--hp:#d9453b;--mp:#5aa6d6;--xp:#e2b94a}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:17px/1.55 Alegreya,Georgia,serif;overflow-x:clip}
+.wrap{max-width:760px;margin:0 auto;padding:max(16px,env(safe-area-inset-top)) max(4vw,14px,env(safe-area-inset-right)) max(40px,env(safe-area-inset-bottom)) max(4vw,14px,env(safe-area-inset-left))}
+h1{font:400 clamp(28px,6vw,42px)/1.05 "IM Fell English SC",Georgia,serif;margin:6px 0 12px;text-wrap:balance}
+h1 span{color:var(--flame)}
+.scene{position:relative;border-radius:14px;overflow:hidden;border:1px solid var(--line);aspect-ratio:2/1;max-height:42vh;width:100%;background:#0a1512}
+.scene svg{position:absolute;inset:0;width:100%;height:100%}
+.place{position:absolute;left:14px;bottom:10px;font:400 22px/1.1 "IM Fell English SC",serif;text-shadow:0 2px 8px #000}
+.foe{position:absolute;right:12px;top:10px;background:#0e1b17d9;border:1px solid var(--line);border-radius:10px;padding:6px 10px;min-width:150px;font-size:15px}
+.vit{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:14px 0 6px}
+.bar{font-size:14px;color:var(--dim)}
+.bar b{color:var(--ink);font-weight:600}
+.track{height:8px;background:#0a1512;border-radius:5px;overflow:hidden;margin-top:3px;border:1px solid var(--line)}
+.track i{display:block;height:100%;transition:width .35s}
+.meta{display:flex;flex-wrap:wrap;gap:6px 16px;font-size:15px;color:var(--dim);margin-bottom:10px}
+.meta b{color:var(--ink)}
+.log{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;height:clamp(180px,30vh,300px);overflow-y:auto}
+.log p{margin:0 0 8px}
+.log p:last-child{color:var(--ink)}
+.log p:not(:last-child){color:var(--dim)}
+.log .hit{color:#f0a08f}.log .good{color:#e9cf7d}.log .sys{font-style:italic}
+.acts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin-top:14px}
+button{font:600 16px/1.2 Alegreya,serif;min-height:48px;padding:10px 12px;border-radius:10px;border:1px solid var(--line);background:#1b3229;color:var(--ink);cursor:pointer;text-align:left}
+button:hover{background:#224034}
+button:focus-visible,input:focus-visible{outline:2px solid var(--flame);outline-offset:2px}
+button.main{background:var(--flame);color:#1a0d05;border-color:var(--flame)}
+button:disabled{opacity:.45;cursor:not-allowed}
+button small{display:block;font-weight:400;font-size:13px;opacity:.85}
+.intro p{margin:0 0 14px}.intro p:first-child::first-letter{font:400 3.2em/0.8 "IM Fell English SC",serif;float:left;margin:6px 8px 0 0;color:var(--flame)}.intro{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-top:14px}.intro .who{color:var(--dim);font-style:italic}
+.create label{display:block;margin:8px 0 4px;color:var(--dim)}
+.create input{width:100%;font:16px Alegreya,serif;padding:12px;border-radius:10px;border:1px solid var(--line);background:#0a1512;color:var(--ink)}
+.classes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:12px 0}
+.classes button{min-height:110px}
+.classes button[aria-pressed=true]{border-color:var(--flame);box-shadow:inset 0 0 0 1px var(--flame)}
+.foot{margin-top:18px;display:flex;justify-content:space-between;gap:10px;font-size:13px;color:var(--dim)}
+.help{position:fixed;inset:0;background:#050b09cc;display:flex;align-items:flex-start;justify-content:center;padding:16px;z-index:9;overflow-y:auto}
+.help[hidden]{display:none}.scroll{overflow-x:auto}
+.help>div{background:var(--panel);border:1px solid var(--line);border-radius:14px;max-width:700px;width:100%;padding:18px 20px 24px;margin:auto 0}
+.help h2{font:400 30px/1.1 "IM Fell English SC",serif;margin:0 0 6px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.help h3{font:400 21px/1.2 "IM Fell English SC",serif;color:var(--flame);margin:20px 0 6px}
+.help p,.help li{font-size:16px}.help ul,.help ol{padding-left:20px;margin:6px 0}
+.help table{width:100%;border-collapse:collapse;font-size:15px}
+.help th,.help td{text-align:left;padding:6px 6px;border-bottom:1px solid var(--line)}
+.help th{color:var(--dim);font-weight:600}.help td.n,.help th.n{text-align:right;white-space:nowrap}
+.help h2 button{background:none;min-height:44px}
+.foot .btns{display:flex;gap:8px}
+.foot button{min-height:44px;font-size:14px;background:none}
+@media(max-width:600px){.classes{grid-template-columns:1fr}.classes button{min-height:64px}.vit{gap:6px}.foe{min-width:120px;font-size:13px}.place{font-size:18px}}
+@media(prefers-reduced-motion:reduce){.track i{transition:none}.flick{animation:none!important}}
+@keyframes flick{0%,100%{opacity:.85}50%{opacity:1}}
+.flick{animation:flick 2.4s ease-in-out infinite}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>The Lantern of <span>Hollowmere</span></h1>
+  <div class="scene" id="scene"></div>
+  <div id="ui"></div>
+  <div class="foot"><span>Progress saves on this device.</span><span class="btns"><button id="helpbtn" type="button">How to play</button><button id="reset" type="button">New game</button></span></div>
+  <div class="help" id="help" hidden role="dialog" aria-modal="true" aria-labelledby="helpt"><div id="helpbody"></div></div>
+</div>
+<script>
+{
+const $=s=>document.getElementById(s);
+const rnd=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const KEY='hollowmere-save';
+
+const CLASSES={
+  warrior:{label:'Warrior',hp:34,mp:4,atk:7,def:4,skill:'Cleave',cost:3,grow:{hp:7,mp:2,atk:2},blurb:'Tough and steady. Cleave hits twice as hard.'},
+  mage:{label:'Mage',hp:24,mp:16,atk:4,def:3,skill:'Firebolt',cost:4,grow:{hp:6,mp:4,atk:1},blurb:'Fragile but deadly. Firebolt ignores armour.'},
+  rogue:{label:'Rogue',hp:27,mp:8,atk:6,def:3,skill:'Backstab',cost:3,grow:{hp:6,mp:3,atk:2},blurb:'Dodges blows and lands brutal criticals.'}
+};
+const FOES={
+  wolf:{name:'Grey Wolf',hp:14,atk:5,def:1,xp:8,gold:3,where:'Whisperwood'},
+  goblin:{name:'Goblin Cutpurse',hp:16,atk:5,def:2,xp:10,gold:7,where:'Whisperwood'},
+  bat:{name:'Cave Bat',hp:10,atk:4,def:0,xp:6,gold:2,where:'Mossdeep Cave'},
+  spider:{name:'Moss Spider',hp:20,atk:6,def:2,xp:14,gold:7,where:'Whisperwood (lv 2+), Mossdeep Cave'},
+  skeleton:{name:'Rattling Skeleton',hp:26,atk:7,def:3,xp:20,gold:10,where:'Mossdeep Cave (lv 2+), key guardian'},
+  wraith:{name:'Chapel Wraith',hp:32,atk:9,def:3,xp:30,gold:14,where:'Sunken Chapel'},
+  knight:{name:'Drowned Knight',hp:40,atk:10,def:5,xp:40,gold:20,where:'Sunken Chapel'},
+  abbot:{name:'The Drowned Abbot',hp:80,atk:12,def:5,xp:60,gold:80,where:'Chapel altar',boss:1,ember:1,special:'Tide of Grief',
+    intro:'Black water rises over the altar and a bloated figure in rotten vestments climbs out, cradling a tiny flame. "My king entrusted this to me," the Drowned Abbot gurgles. "You will not have it."'},
+  hound:{name:'Bog Hound',hp:40,atk:15,def:5,xp:30,gold:20,where:'Ashen Moor'},
+  wisp:{name:"Will-o'-Wisp",hp:30,atk:17,def:9,xp:35,gold:24,where:'Ashen Moor'},
+  troll:{name:'Marsh Troll',hp:60,atk:17,def:6,xp:50,gold:32,where:'Ashen Moor'},
+  witch:{name:'Ysolde the Bog Witch',hp:110,atk:18,def:7,xp:120,gold:120,where:"Witch's hut, Ashen Moor",boss:1,ember:2,special:'Withering Hex',
+    intro:'The hut door creaks open. Ysolde sits by a cauldron that burns with Aldra\'s stolen light. "The Hollow King promised me eternal youth for guarding this," she cackles, rising. "I intend to collect."'},
+  icewolf:{name:'Frostfang Wolf',hp:70,atk:26,def:12,xp:45,gold:30,where:'Frostfang Peaks'},
+  harpy:{name:'Storm Harpy',hp:60,atk:28,def:10,xp:50,gold:32,where:'Frostfang Peaks'},
+  golem:{name:'Stone Golem',hp:80,atk:27,def:15,xp:70,gold:45,where:'Frostfang Peaks'},
+  wyrm:{name:'Kaltheir the Frost Wyrm',hp:180,atk:30,def:12,xp:200,gold:200,where:"Wyrm's lair, Frostfang Peaks",boss:1,ember:3,special:'Frost Breath',
+    intro:'The ice cracks. A great white dragon uncoils from its hoard, the last ember glowing in its chest like a swallowed star. Kaltheir opens one pale eye. "Little warm thing. You will make a fine snack."'},
+  thorn:{name:'Thorn Knight',hp:100,atk:36,def:18,xp:70,gold:50,where:'The Heartwood'},
+  shade:{name:'Hollow Shade',hp:80,atk:38,def:14,xp:75,gold:45,where:'The Heartwood'},
+  treant:{name:'Ancient Treant',hp:140,atk:37,def:22,xp:95,gold:70,where:'The Heartwood'},
+  king:{name:'The Hollow King',hp:260,atk:42,def:20,xp:0,gold:0,where:'Heart of the grove',boss:1,special:'Wail of the Taken',
+    intro:'At the centre of the grove stands a tree with a hollow where its heart should be. Orlen, the Hollow King, steps out of it, crowned in thorns. "Aldra\'s little lantern again," he whispers, and a thousand stolen voices whisper with him. "This time I will put it out for good."'}
+};
+const PLACES={
+  village:{name:'Hollowmere Village',sky:['#1d2f4a','#3b3350'],hill:'#16281f',far:'#22382c'},
+  forest:{name:'Whisperwood',sky:['#0f1f22','#23342f'],hill:'#0c1a14',far:'#173026'},
+  cave:{name:'Mossdeep Cave',sky:['#0b1110','#1a2420'],hill:'#0a120f',far:'#14201b'},
+  ruins:{name:'The Sunken Chapel',sky:['#1b1830','#3a2440'],hill:'#141223',far:'#231d35'},
+  moor:{name:'The Ashen Moor',sky:['#2a2433','#4a3f4a'],hill:'#1c1a20',far:'#2c2a30'},
+  peaks:{name:'Frostfang Peaks',sky:['#1c2a3e','#5a6f8a'],hill:'#c9d6e2',far:'#8fa3b8'},
+  heart:{name:'The Heartwood',sky:['#1a0f12','#3a1a1c'],hill:'#140b0c',far:'#2a1518'}
+};
+const SHOP=[
+  {id:'potion',name:'Healing Draught',price:8,note:'Restores 20 HP',req:0},
+  {id:'ether',name:'Blue Ether',price:10,note:'Restores 10 MP',req:0},
+  {id:'sword',name:'Iron Sword',price:40,note:'+3 attack',once:1,req:0,atk:3},
+  {id:'mail',name:'Chain Mail',price:45,note:'+3 defence',once:1,req:0,def:3},
+  {id:'greater',name:'Greater Draught',price:25,note:'Restores 50 HP',req:1},
+  {id:'steel',name:'Steel Sword',price:120,note:'+6 attack',once:1,req:1,atk:6},
+  {id:'plate',name:"Knight's Plate",price:130,note:'+6 defence',once:1,req:1,def:6},
+  {id:'runed',name:'Runed Blade',price:300,note:'+10 attack',once:1,req:2,atk:10},
+  {id:'warden',name:'Warden Armour',price:320,note:'+10 defence',once:1,req:2,def:10}
+];
+const ITEMS={potion:['Healing Draught',20,'hp'],greater:['Greater Draught',50,'hp'],ether:['Blue Ether',10,'mp']};
+
+let S=null, mode='intro', chosen='warrior', log=[];
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify({S,mode,log:log.slice(-40)}))}catch(e){}}
+function load(){
+  try{const d=JSON.parse(localStorage.getItem(KEY));if(!d||!d.S)return false;S=d.S;mode=d.mode;log=d.log||[];}catch(e){return false}
+  S.embers=S.embers||0;S.beaten=S.beaten||{};S.inv.greater=S.inv.greater||0;
+  if(S.flags.won){delete S.flags.won;S.embers=Math.max(S.embers,1);S.beaten.abbot=1;if(mode==='won')mode='explore';
+    say('The story is longer than it seemed. The creature you defeated in the chapel was only a servant, and the flame you carried home was a single ember. New lands have opened beyond Whisperwood. Speak to Elder Maren.','sys');}
+  if(S.foe&&!FOES[S.foe.key]){S.foe=null;mode='explore';}
+  return true;
+}
+function say(t,c=''){log.push({t,c});if(log.length>60)log.shift()}
+
+function newHero(name,cls){
+  const c=CLASSES[cls];
+  S={name:name||'Wanderer',cls,lvl:1,xp:0,hp:c.hp,maxHp:c.hp,mp:c.mp,maxMp:c.mp,atk:c.atk,def:c.def,gold:15,
+     inv:{potion:2,ether:1,greater:0},gear:{},loc:'village',flags:{},caveCount:0,foe:null,turn:0,embers:0,beaten:{}};
+  log=[];
+  say(`Rain drums on the thatch as ${esc(S.name)} the ${c.label} steps into Hollowmere. The great lantern above the square, the light that has kept the dark woods at bay for three hundred years, hangs cold and empty.`);
+  say('Ask Elder Maren what happened. She knows the old story better than anyone.','sys');
+  mode='explore';
+}
+
+/* ---------- scene ---------- */
+function scene(){
+  const loc=S?S.loc:'village',p=PLACES[loc];let land='';
+  if(loc==='village'){
+    const e=S?(S.flags.done?4:S.embers):0;
+    land=[60,130,250,320].map((x,i)=>`<g transform="translate(${x},${118+(i%2)*6})"><rect x="-22" y="0" width="44" height="34" fill="#2a2018"/><path d="M-28 2 L0 -22 L28 2Z" fill="#3a2a1c"/><rect x="-6" y="10" width="10" height="10" fill="#ffb15e" class="flick"/></g>`).join('')
+      +`<line x1="196" y1="150" x2="196" y2="60" stroke="#2a2018" stroke-width="4"/><path d="M186 60h20v22h-20z" fill="#1a1410" stroke="#5a4630"/>`
+      +(e?`<circle cx="196" cy="71" r="${10+e*5}" fill="#ff9b4d" opacity="${.12+e*.06}"/><circle cx="196" cy="71" r="${3+e}" fill="#ffd28a" class="flick"/>`:'');
+  }else if(loc==='forest'){
+    land=Array.from({length:14},(_,i)=>{const x=i*30,h=60+((i*37)%40);return `<path d="M${x} 160 L${x+16} ${160-h} L${x+32} 160Z" fill="${i%2?'#0f241b':'#132e22'}"/>`}).join('')
+      +`<circle cx="120" cy="138" r="2" fill="#cfe9a8" class="flick"/><circle cx="290" cy="126" r="2" fill="#cfe9a8" class="flick"/>`;
+  }else if(loc==='cave'){
+    land=`<path d="M0 200 L0 40 Q200 -10 400 40 L400 200Z" fill="#141f1a"/><path d="M110 200 Q110 70 200 66 Q290 70 290 200Z" fill="#050807"/>`
+      +[40,80,330,365].map(x=>`<path d="M${x} 40 l8 30 l8 -30Z" fill="#1f2d27"/>`).join('');
+  }else if(loc==='ruins'){
+    land=[70,170,270].map(x=>`<g><rect x="${x}" y="80" width="14" height="80" fill="#2b2540"/><rect x="${x+46}" y="${x===170?110:80}" width="14" height="${x===170?50:80}" fill="#2b2540"/>${x!==170?`<path d="M${x} 82 Q${x+30} 40 ${x+60} 82" stroke="#2b2540" stroke-width="12" fill="none"/>`:''}</g>`).join('')
+      +`<rect x="184" y="132" width="34" height="18" fill="#3a3255"/><circle cx="201" cy="128" r="4" fill="#b68cff" class="flick"/>`;
+  }else if(loc==='moor'){
+    land=[50,150,300,360].map((x,i)=>`<g stroke="#121014" stroke-width="3" fill="none"><path d="M${x} 158 L${x} ${100+i*6} M${x} ${120+i*4} l-14 -14 M${x} ${112+i*4} l12 -16"/></g>`).join('')
+      +`<ellipse cx="110" cy="166" rx="40" ry="5" fill="#4a5560" opacity=".6"/><ellipse cx="250" cy="170" rx="55" ry="6" fill="#4a5560" opacity=".5"/>`
+      +`<rect y="120" width="400" height="40" fill="#cfc6d6" opacity=".08"/><circle cx="210" cy="120" r="3" fill="#b8f0ff" class="flick"/><circle cx="80" cy="132" r="2.5" fill="#b8f0ff" class="flick"/>`
+      +`<g transform="translate(330,128)"><rect x="-18" y="0" width="36" height="26" fill="#241c20"/><path d="M-24 2 L2 -20 L24 2Z" fill="#3a2a2a"/><rect x="-5" y="8" width="8" height="8" fill="#9dff8a" class="flick"/></g>`;
+  }else if(loc==='peaks'){
+    land=[[-20,190],[90,240],[210,200],[300,230]].map(([x,w],i)=>{const h=90+(i%2)*30;return `<path d="M${x} 160 L${x+w/2} ${160-h} L${x+w} 160Z" fill="#5d7088"/><path d="M${x+w/2-18} ${160-h+30} L${x+w/2} ${160-h} L${x+w/2+18} ${160-h+30} L${x+w/2+6} ${160-h+24} L${x+w/2-6} ${160-h+30}Z" fill="#eef4fa"/>`}).join('')
+      +Array.from({length:22},(_,i)=>`<circle cx="${(i*71)%400}" cy="${(i*43)%150}" r="1.3" fill="#fff" opacity=".8"/>`).join('');
+  }else{
+    land=`<rect x="170" y="40" width="60" height="120" fill="#2a1410"/><ellipse cx="200" cy="105" rx="14" ry="22" fill="#050203"/><circle cx="200" cy="105" r="5" fill="#ff4a3a" opacity=".6" class="flick"/>`
+      +[[150,40,50],[250,40,55],[200,20,60],[110,70,35],[290,66,38]].map(([x,y,r])=>`<circle cx="${x}" cy="${y}" r="${r}" fill="#2c0f12"/>`).join('')
+      +[60,120,300,350].map((x,i)=>`<circle cx="${x}" cy="${90+i*12}" r="2" fill="#ff7a5a" class="flick"/>`).join('');
+  }
+  const f=S&&S.foe,big=f&&FOES[f.key].boss,fx=loc==='cave'||loc==='heart'?200:330;
+  const foe=f?`<g transform="translate(${fx},${loc==='heart'?170:150})"><ellipse cx="0" cy="6" rx="${big?50:38}" ry="6" fill="#000" opacity=".5"/><path d="M-${big?40:30} 6 Q-${big?44:34} -50 0 -${big?92:56} Q${big?44:34} -50 ${big?40:30} 6Z" fill="#050806"/><circle cx="-9" cy="-${big?64:34}" r="3.5" fill="#ff3d2e" class="flick"/><circle cx="9" cy="-${big?64:34}" r="3.5" fill="#ff3d2e" class="flick"/></g>`:'';
+  const moon=loc!=='cave'&&loc!=='heart'?`<circle cx="330" cy="40" r="16" fill="#efe6d2" opacity=".9"/><circle cx="324" cy="36" r="16" fill="${p.sky[0]}" opacity=".85"/>`+Array.from({length:18},(_,i)=>`<circle cx="${(i*53)%400}" cy="${(i*29)%80}" r=".9" fill="#fff" opacity=".7"/>`).join(''):'';
+  $('scene').innerHTML=`<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+    <defs><linearGradient id="sk" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="${p.sky[0]}"/><stop offset="1" stop-color="${p.sky[1]}"/></linearGradient></defs>
+    <rect width="400" height="200" fill="url(#sk)"/>${moon}
+    <path d="M0 130 Q80 100 160 122 T320 112 T400 118 V200 H0Z" fill="${p.far}"/>${land}
+    <path d="M0 160 Q100 150 200 158 T400 154 V200 H0Z" fill="${p.hill}"/>${foe}</svg>
+    <div class="place">${p.name}</div>
+    ${f?`<div class="foe"><b>${f.name}</b>${barHtml('',f.hp,f.max,'var(--hp)')}</div>`:''}`;
+}
+function barHtml(l,v,m,c){return `<div class="bar">${l?`${l} <b>${Math.max(0,v)}/${m}</b>`:''}<div class="track"><i style="width:${Math.max(0,v/m*100)}%;background:${c}"></i></div></div>`}
+
+/* ---------- story ---------- */
+const arrive={
+  village:()=>'You return to Hollowmere. Woodsmoke and the smell of bread drift from the Gilded Goose inn.',
+  forest:()=>pick(['The trees of Whisperwood close overhead. Faint voices murmur in the branches, too soft to make out.','You enter Whisperwood. Somewhere in the leaves a child\'s voice whispers your name, then goes quiet.','The whispers grow louder as you walk under the trees. These are the ones the Hollow King took, still waiting.']),
+  cave:()=>'Water drips in the dark of Mossdeep Cave. Pale moss glows faintly along the walls.',
+  ruins:()=>'The Sunken Chapel lies half swallowed by black water. A cold violet light burns on the altar.',
+  moor:()=>'The trees give way to the Ashen Moor, a grey waste of bog and dead trees. Pale lights drift over the water, and far off a single green window glows.',
+  peaks:()=>'Snow bites at your face as you climb into Frostfang Peaks. Somewhere above, something enormous breathes in its sleep.',
+  heart:()=>'The three embers in the lantern have burned a path through the forest. You follow it into the Heartwood, where the trees are red as old blood and the whispers become screams.'
+};
+const EMBER_TEXT={
+  1:['The Abbot dissolves into black water, and the flame drifts into your hands. But it is small, far too small. This is only an ember of Aldra\'s light.',
+     'Back in Hollowmere you set the ember in the great lantern. It flickers weakly. Elder Maren will want to hear about this.'],
+  2:['Ysolde shrieks and crumbles into ash and dry reeds. The second ember rises from her cauldron and settles warm in your palm.',
+     'You carry it home, and the lantern burns brighter. Two embers of three. The forest edge pulls back by a few paces.'],
+  3:['Kaltheir crashes into the snow and lies still. The last ember slips free of its frozen heart.',
+     'When you set it in the lantern, all three embers fuse into one steady flame. Its light reaches deep into Whisperwood and reveals a red path no one has seen in three hundred years, leading into the Heartwood.']
+};
+function talk(){
+  const e=S.embers;
+  if(!S.flags.quest){S.flags.quest=true;
+    say('Elder Maren grips your arm. "You know the old story? Aldra\'s lantern and the Hollow King? Children think it is only a bedtime tale. It is not."');
+    say('"Aldra\'s seal has weakened over the centuries. Three nights ago a crowned shadow rose out of the Sunken Chapel and stole her flame from our lantern. Can you hear the wood? Those are the voices of everyone he has taken. Every night without the flame, the trees move closer."');
+    say('"The chapel has been locked for a century. The last keeper fled into Mossdeep Cave. If the key survives, it is there. Grow strong first, child."','sys');}
+  else if(S.flags.done)say('"The lantern has never burned so bright," Maren says, smiling. "Aldra would be proud of you."');
+  else if(e===0&&!S.flags.key)say('"Search Mossdeep Cave, beyond Whisperwood. And buy decent armour, I beg you."');
+  else if(e===0)say(`"You have the key! The chapel lies past Whisperwood. ${S.lvl<4?'But you are not ready. Reach level 4 at least.':'Go, and may the old light guide you."'}`);
+  else if(e===1){say('Maren stares at the weak little ember. "So that is his game. Orlen split Aldra\'s flame into three embers and gave each to a servant, so no one could take it back in one stroke. He has fled to the Heartwood, the grove where he made his bargain, to regrow his strength."');
+    say('"The second ember will be with Ysolde, the witch of the Ashen Moor. She has served the forest for longer than I have been alive. Brannoc has better steel for you now."','sys');}
+  else if(e===2)say('"Two embers! The last will be in Frostfang Peaks, guarded by Kaltheir, the frost wyrm. Dress warmly, and buy the best armour Brannoc can make."');
+  else say(`"The path to the Heartwood is open. Orlen waits at its centre. ${S.lvl<10?'He is far stronger than anything you have faced. I would reach level 10 first.':'You are as ready as anyone has ever been. End this."'}`);
+}
+
+/* ---------- game logic ---------- */
+function travel(to){S.loc=to;say(arrive[to]());}
+function fight(key){
+  const f=FOES[key];S.foe={...f,key,max:f.hp,enraged:false};S.turn=0;mode='combat';
+  say(f.intro||`A ${f.name} lunges from the shadows!`,'hit');
+}
+const POOLS={forest:()=>['wolf','goblin',S.lvl>1?'spider':'wolf'],cave:()=>S.lvl>=2?['bat','spider','skeleton']:['bat','bat','spider'],
+  ruins:()=>['wraith','knight','wraith'],moor:()=>['hound','wisp','troll'],peaks:()=>['icewolf','harpy','golem'],heart:()=>['thorn','shade','treant']};
+function explore(){
+  const l=S.loc,r=Math.random();
+  if(l==='cave'){S.caveCount++;
+    if(!S.flags.key&&S.caveCount>=3){S.flags.pendingKey=true;say('Deep in the cave, a skeleton clutches a rusted iron key. Its jaw clacks open as you approach.');return fight('skeleton');}}
+  const odds={forest:.55,cave:.65,ruins:.7,moor:.7,peaks:.7,heart:.75}[l];
+  if(r<odds)return fight(pick(POOLS[l]()));
+  if(l==='forest'){if(Math.random()<.55){const g=rnd(2,8);S.gold+=g;say(`You find a dropped coin purse in the leaf litter: ${g} gold.`,'good');}
+    else{S.inv.potion++;say('You gather silverleaf and brew a Healing Draught.','good');}return;}
+  const loot={cave:[4,12,"Old miners' coins glint in a puddle"],ruins:[10,20,'Among the pews you find an offering box'],moor:[15,30,'A drowned traveller\'s satchel floats in the bog'],
+    peaks:[20,40,'A frozen climber still grips his coin pouch'],heart:[30,50,'Gold offerings lie tangled in the roots']}[l];
+  const g=rnd(loot[0],loot[1]);S.gold+=g;let extra='';
+  if(l==='ruins'){S.inv.ether++;extra=' and a vial of Blue Ether';}
+  if(l==='moor'||l==='peaks'){S.inv.greater++;extra=' and a Greater Draught';}
+  if(l==='heart'){S.inv.ether++;extra=' and a vial of Blue Ether';}
+  say(`${loot[2]}: ${g} gold${extra}.`,'good');
+}
+function gainXp(n){
+  S.xp+=n;
+  while(S.xp>=S.lvl*35){S.xp-=S.lvl*35;S.lvl++;const g=CLASSES[S.cls].grow;S.maxHp+=g.hp;S.maxMp+=g.mp;S.atk+=g.atk;S.def+=1;S.hp=S.maxHp;S.mp=S.maxMp;
+    say(`Level up! You are now level ${S.lvl}. You feel stronger, and your wounds close.`,'good');}
+}
+function win(){
+  const f=S.foe,F=FOES[f.key];
+  if(F.xp)say(`The ${f.name} falls. You gain ${F.xp} XP and ${F.gold} gold.`,'good');
+  S.gold+=F.gold;gainXp(F.xp);S.foe=null;mode='explore';
+  if(S.flags.pendingKey){S.flags.pendingKey=false;S.flags.key=true;say('You pry the rusted key from its bony fingers. It bears the sigil of the Sunken Chapel.','good');}
+  if(F.boss)S.beaten[f.key]=1;
+  if(F.ember){S.embers=F.ember;EMBER_TEXT[F.ember].forEach(t=>say(t,'good'));S.loc='village';
+    say(`Chapter ${F.ember+1} begins. Speak to Elder Maren.`,'sys');}
+  if(f.key==='king'){S.flags.done=true;mode='won';S.loc='village';
+    say('Orlen staggers. The stolen voices tear free of him one by one, a rush of whispers that turns into laughter, then into silence. The Hollow King crumbles into dry leaves, and the hollow tree finally falls.','good');
+    say(`Whisperwood is quiet for the first time in three centuries. In Hollowmere the lantern blazes white-gold, and the villagers fill the square, chanting the name ${esc(S.name)}. THE END.`,'good');}
+}
+function foeTurn(){
+  const f=S.foe,F=FOES[f.key];S.turn++;
+  if(f.key==='king'&&!f.enraged&&f.hp<=f.max/2){f.enraged=true;f.atk+=4;say('The Hollow King howls and draws the forest\'s darkness into himself. His blows grow heavier!','hit');}
+  if(S.cls==='rogue'&&Math.random()<.2){say(`You slip aside as the ${f.name} strikes at empty air.`);return;}
+  let d=Math.max(1,f.atk+rnd(0,2)-S.def),msg=`The ${f.name} hits you for ${d}.`;
+  if(F.boss&&S.turn%3===0){d=Math.round(d*1.6);msg=`${f.name} uses ${F.special} for ${d} damage!`;}
+  S.hp-=d;say(msg,'hit');
+  if(S.hp<=0){S.hp=0;mode='dead';say('Darkness takes you.','hit');}
+}
+function strike(mult,label){
+  const f=S.foe;let d=Math.max(1,Math.round((S.atk+rnd(0,3))*mult)-f.def);
+  const crit=S.cls==='rogue'&&Math.random()<(label==='Backstab'?.5:.2);if(crit)d*=2;
+  f.hp-=d;say(`${label?label+'! ':''}You ${crit?'land a critical blow':'strike'} for ${d}.`);
+  if(f.hp<=0)win();else foeTurn();
+}
+function skill(){
+  const c=CLASSES[S.cls];if(S.mp<c.cost)return;S.mp-=c.cost;
+  if(S.cls==='mage'){const d=rnd(12,18)+S.lvl*3;S.foe.hp-=d;say(`Firebolt! Flame engulfs the ${S.foe.name} for ${d}.`);if(S.foe.hp<=0)win();else foeTurn();}
+  else strike(S.cls==='warrior'?2:1.3,c.skill);
+}
+function use(id){
+  if(!S.inv[id])return;S.inv[id]--;const [n,amt,stat]=ITEMS[id];
+  if(stat==='hp'){const h=Math.min(amt,S.maxHp-S.hp);S.hp+=h;say(`You drink a ${n} (+${h} HP).`,'good');}
+  else{const m=Math.min(amt,S.maxMp-S.mp);S.mp+=m;say(`You drink ${n} (+${m} MP).`,'good');}
+  if(mode==='items-combat'){mode='combat';foeTurn();}else mode='explore';
+}
+function flee(){
+  if(FOES[S.foe.key].boss){say('There is no escape from this fight.','hit');return foeTurn();}
+  if(Math.random()<.55){say('You break away and escape into the dark.');S.foe=null;mode='explore';}
+  else{say('You try to flee but stumble!','hit');foeTurn();}
+}
+function buy(it){
+  if(S.gold<it.price)return say(`"Come back when you have ${it.price} gold," says the smith.`);
+  S.gold-=it.price;
+  if(it.once){S.gear[it.id]=1;S.atk+=it.atk||0;S.def+=it.def||0;}else S.inv[it.id]++;
+  say(`You buy the ${it.name}.`,'good');
+}
+
+/* ---------- actions ---------- */
+function actions(){
+  const A=[],c=CLASSES[S.cls],e=S.embers;
+  const add=(label,fn,sub='',o={})=>A.push({label,fn,sub,...o});
+  const inv=`${S.inv.potion} draught, ${S.inv.greater} greater, ${S.inv.ether} ether`;
+  if(mode==='dead'){add('Rise again',()=>{S.hp=Math.ceil(S.maxHp/2);S.mp=S.maxMp;S.gold=Math.floor(S.gold/2);S.foe=null;S.loc='village';mode='explore';say('You wake in the village temple, half your gold gone to the priests.','sys');},'Back to the village, lose half your gold',{main:1});return A;}
+  if(mode==='won'){add('Keep adventuring',()=>{mode='explore';say('The woods are quieter now, but not empty.','sys');},'',{main:1});add('Start a new tale',reset);return A;}
+  if(mode==='combat'){
+    add('Attack',()=>strike(1,''),`${S.atk} attack`,{main:1});
+    add(c.skill,skill,`${c.cost} MP`,{dis:S.mp<c.cost});
+    add('Items',()=>{mode='items-combat'},inv);
+    add('Flee',flee,FOES[S.foe.key].boss?'Impossible':'55% chance');return A;}
+  if(mode==='items'||mode==='items-combat'){
+    Object.entries(ITEMS).forEach(([id,[n,amt,st]])=>add(n,()=>use(id),`${S.inv[id]} left · +${amt} ${st.toUpperCase()}`,{dis:!S.inv[id]}));
+    add('Back',()=>{mode=mode==='items-combat'?'combat':'explore'});return A;}
+  if(mode==='shop'){
+    SHOP.filter(it=>it.req<=e).forEach(it=>add(`${it.name} · ${it.price}g`,()=>buy(it),it.once&&S.gear[it.id]?'Owned':it.note,{dis:it.once&&S.gear[it.id]}));
+    add('Leave the forge',()=>{mode='explore'});return A;}
+  const l=S.loc,need=(n)=>S.lvl<n?`Recommended level ${n}`:'';
+  if(l==='village'){
+    add('Talk to Elder Maren',talk,S.flags.quest?'':'She looks worried',{main:!S.flags.quest});
+    add('Rest at the inn',()=>{if(S.gold<5)return say('"Five gold a night," says the innkeeper, unmoved.');S.gold-=5;S.hp=S.maxHp;S.mp=S.maxMp;say('You sleep by the fire at the Gilded Goose and wake fully restored.','good');},'5 gold · full heal');
+    add("Visit the smith's forge",()=>{mode='shop';say(e?'"Your embers lit my old forge too," Brannoc grins. "I can make finer things now."':'Brannoc the smith wipes soot from his hands. "Buying?"')},e?'New stock available':'');
+    add('Walk to Whisperwood',()=>travel('forest'),'',{main:S.flags.quest});
+  }else if(l==='forest'){
+    add('Explore the woods',explore,'Danger and treasure',{main:1});
+    add('Enter Mossdeep Cave',()=>travel('cave'),need(2));
+    add('The Sunken Chapel',()=>travel('ruins'),S.flags.key?need(4)||'Chapter 1':'Locked: needs a key',{dis:!S.flags.key});
+    if(e>=1||S.beaten.abbot)add('The Ashen Moor',()=>travel('moor'),need(5)||'Chapter 2');
+    if(e>=1)add('Frostfang Peaks',()=>travel('peaks'),e>=2?need(7)||'Chapter 3':'Sealed by ice: needs 2 embers',{dis:e<2});
+    if(e>=2)add('The Heartwood',()=>travel('heart'),e>=3?need(9)||'Final chapter':'Hidden: needs 3 embers',{dis:e<3});
+    add('Return to the village',()=>travel('village'));
+  }else if(l==='cave'){
+    add('Delve deeper',explore,S.flags.key?'':'Something waits below',{main:1});
+    add('Leave the cave',()=>travel('forest'));
+  }else{
+    const B={ruins:['Search the ruins','Approach the altar','abbot',4],moor:['Wade through the moor',"Enter the witch's hut",'witch',6],
+      peaks:['Climb the slopes',"Climb to the wyrm's lair",'wyrm',8],heart:['Push into the grove','Face the Hollow King','king',10]}[l];
+    add(B[0],explore,'Strong foes',{main:1});
+    if(!S.beaten[B[2]])add(B[1],()=>fight(B[2]),`Boss · level ${B[3]}+ advised`);
+    add('Retreat to Whisperwood',()=>travel('forest'));
+  }
+  add('Inventory',()=>{mode='items'},inv);
+  return A;
+}
+
+/* ---------- help ---------- */
+function helpHtml(){
+  const cl=Object.values(CLASSES).map(c=>`<tr><td><b>${c.label}</b></td><td class="n">${c.hp}</td><td class="n">${c.mp}</td><td class="n">${c.atk}</td><td class="n">${c.def}</td><td>${c.skill} (${c.cost} MP)</td></tr>`).join('');
+  const row=f=>`<tr><td><b>${f.name}</b></td><td>${f.where}</td><td class="n">${f.hp}</td><td class="n">${f.atk}</td><td class="n">${f.def}</td><td class="n">${f.xp}</td><td class="n">${f.gold}</td></tr>`;
+  const head='<thead><tr><th>Name</th><th>Found in</th><th class="n">HP</th><th class="n">Atk</th><th class="n">Def</th><th class="n">XP</th><th class="n">Gold</th></tr></thead>';
+  const fo=Object.values(FOES).filter(f=>!f.boss).map(row).join(''),bo=Object.values(FOES).filter(f=>f.boss).map(row).join('');
+  const sh=SHOP.map(i=>`<tr><td>${i.name}</td><td class="n">${i.price}g</td><td>${i.note}${i.once?' (buy once)':''}</td><td>${i.req?`After ${i.req} ember${i.req>1?'s':''}`:'From the start'}</td></tr>`).join('');
+  return `<h2 id="helpt">How to play<button type="button" id="helpclose" aria-label="Close guide">Close</button></h2>
+  <p>Recover the three embers of Aldra's flame, then defeat the Hollow King and relight the lantern of Hollowmere. Tap the buttons to act. The highlighted button is usually the next good step.</p>
+  <h3>The quest, chapter by chapter</h3>
+  <ol><li><b>Chapter 1:</b> Talk to Elder Maren. Train in Whisperwood and delve into Mossdeep Cave. After three trips you'll meet the skeleton guarding the rusted key. Unlock the Sunken Chapel and defeat the Drowned Abbot (level 4+) for the first ember.</li>
+  <li><b>Chapter 2:</b> Cross the Ashen Moor (level 5+) and defeat Ysolde the Bog Witch (level 6+) for the second ember.</li>
+  <li><b>Chapter 3:</b> Climb Frostfang Peaks (level 7+) and defeat Kaltheir the Frost Wyrm (level 8+) for the last ember.</li>
+  <li><b>Final chapter:</b> The relit lantern reveals the Heartwood (level 9+). Face the Hollow King (level 10+).</li></ol>
+  <p>After each boss, Maren has new advice and the forge gets better gear. Upgrading your weapon and armour each chapter matters a lot.</p>
+  <h3>Classes</h3>
+  <div class="scroll"><table><thead><tr><th>Class</th><th class="n">HP</th><th class="n">MP</th><th class="n">Atk</th><th class="n">Def</th><th>Skill</th></tr></thead><tbody>${cl}</tbody></table></div>
+  <ul><li><b>Cleave</b> (Warrior): an attack at double strength.</li><li><b>Firebolt</b> (Mage): 12–18 damage plus 3 per level, and it ignores enemy defence.</li><li><b>Backstab</b> (Rogue): a stronger hit with a 50% chance to crit.</li><li><b>Rogues</b> dodge 20% of enemy attacks, and their normal attacks have a 20% chance to crit. A crit does double damage.</li></ul>
+  <h3>Combat</h3>
+  <ul><li><b>Attack:</b> your attack plus 0–3, minus the enemy's defence. Always at least 1 damage.</li><li><b>Items:</b> drinking a potion uses up your turn.</li><li><b>Flee:</b> 55% chance to escape. If you fail, the enemy gets a free hit. You can't flee from bosses.</li><li><b>Enemy hits:</b> their attack plus 0–2, minus your defence.</li><li><b>Bosses</b> use a special attack every third turn for about 1.6 times normal damage. The Hollow King also grows stronger (+4 attack) when he drops to half health.</li><li><b>If you fall</b>, you wake in the village with half HP and lose half your gold.</li></ul>
+  <h3>Gold and XP</h3>
+  <ul><li>You start with 15 gold, 2 Healing Draughts and 1 Blue Ether.</li><li>Every enemy you defeat gives a fixed amount of XP and gold (see the tables below).</li><li>Exploring sometimes finds treasure instead of a fight: 2–8 gold or a free draught in Whisperwood, 4–12 in the cave, 10–20 plus Ether in the chapel, 15–30 plus a Greater Draught on the moor, 20–40 plus a Greater Draught in the peaks, and 30–50 plus Ether in the Heartwood.</li><li><b>Levelling up</b> takes your level × 35 XP and fully restores you. Each level gives +1 defence plus: Warriors +7 max HP, +2 MP, +2 attack; Mages +6 HP, +4 MP, +1 attack; Rogues +6 HP, +3 MP, +2 attack.</li></ul>
+  <h3>Enemies</h3>
+  <div class="scroll"><table>${head}<tbody>${fo}</tbody></table></div>
+  <h3>Bosses</h3>
+  <div class="scroll"><table>${head}<tbody>${bo}</tbody></table></div>
+  <h3>Village</h3>
+  <ul><li><b>Gilded Goose inn:</b> 5 gold to restore all HP and MP.</li><li><b>Brannoc's forge</b> stocks better gear as you return embers:</li></ul>
+  <div class="scroll"><table><thead><tr><th>Item</th><th class="n">Price</th><th>Effect</th><th>Available</th></tr></thead><tbody>${sh}</tbody></table></div>
+  <h3>Saving</h3>
+  <p>The game saves after every action, in this browser only. <b>New game</b> erases your save.</p>`;
+}
+function openHelp(){$('helpbody').innerHTML=helpHtml();$('help').hidden=false;$('helpclose').focus();}
+function closeHelp(){$('help').hidden=true;$('helpbtn').focus();}
+
+/* ---------- render ---------- */
+let acts=[];
+function render(){
+  scene();
+  if(mode==='intro'){
+    $('ui').innerHTML=`<div class="intro">
+      <p>Long ago, before there was a village, there was only the forest, and the forest had a king. Orlen was a mortal lord who feared death more than anything. So he went into the deepest grove and made a bargain with the old spirits of the wood: he gave them his heart, and in return they promised he would never die.</p>
+      <p>They kept their word. Orlen did not die. But a man with no heart has no warmth, and soon he began taking it from others. Hunters, travellers and children who wandered too far went into the trees and never came out. Their voices stayed behind, caught in the branches. That is why the forest whispers, and why people began to call it <b>Whisperwood</b>, and to call its master <b>the Hollow King</b>.</p>
+      <p>Three hundred years ago a lantern-keeper named Aldra walked into the woods carrying a flame she had lit from her own heart. The Hollow King could not stand its light. She drove him back into his chapel, sank it into the marsh, and locked the door behind him. She built a village at the forest's edge and hung her flame in a great lantern above the square. As long as it burns, the trees cannot move forward and the King cannot leave.</p>
+      <p>Three nights ago the lantern went out.</p>
+      <p class="who">Since then the whispers have grown louder, and every morning the forest stands a little closer to Hollowmere.</p>
+      <button class="main" type="button" data-i="1">Take up the quest</button></div>`;
+    return;
+  }
+  if(mode==='create'){
+    $('ui').innerHTML=`<form class="create" id="cf"><p>Choose who will bring back the flame.</p>
+      <label for="nm">Your name</label><input id="nm" maxlength="20" placeholder="Wanderer" autocomplete="off">
+      <div class="classes">${Object.entries(CLASSES).map(([k,c])=>`<button type="button" data-c="${k}" aria-pressed="${k===chosen}">${c.label}<small>${c.hp} HP · ${c.mp} MP · ${c.blurb}</small></button>`).join('')}</div>
+      <button class="main" type="submit">Begin the adventure</button></form>`;
+    return;
+  }
+  const c=CLASSES[S.cls],ch=S.flags.done?'Complete':S.embers>=3?'Final chapter':`Chapter ${S.embers+1}`;
+  $('ui').innerHTML=`<div class="vit">${barHtml('HP',S.hp,S.maxHp,'var(--hp)')}${barHtml('MP',S.mp,S.maxMp,'var(--mp)')}${barHtml('XP',S.xp,S.lvl*35,'var(--xp)')}</div>
+    <div class="meta"><span><b>${esc(S.name)}</b>, ${c.label}</span><span>Level <b>${S.lvl}</b></span><span>Gold <b>${S.gold}</b></span><span>Atk <b>${S.atk}</b></span><span>Def <b>${S.def}</b></span><span>Embers <b>${S.embers}/3</b></span><span>${ch}</span>${S.flags.key&&!S.embers?'<span>Rusted key</span>':''}</div>
+    <div class="log" id="log" aria-live="polite">${log.map(e=>`<p class="${e.c}">${e.t}</p>`).join('')}</div>
+    <div class="acts">${(acts=actions()).map((a,i)=>`<button type="button" data-a="${i}" class="${a.main?'main':''}" ${a.dis?'disabled':''}>${a.label}${a.sub?`<small>${a.sub}</small>`:''}</button>`).join('')}</div>`;
+  const lg=$('log');lg.scrollTop=lg.scrollHeight;
+}
+function reset(){try{localStorage.removeItem(KEY)}catch(e){}S=null;log=[];mode='intro';render();}
+
+$('ui').addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  if(b.dataset.i){mode='create';render();window.scrollTo(0,0);return;}
+  if(b.dataset.c){chosen=b.dataset.c;document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===chosen));return;}
+  if(b.dataset.a){const a=acts[+b.dataset.a];if(a&&!a.dis){a.fn();save();render();}}
+});
+$('ui').addEventListener('submit',e=>{e.preventDefault();newHero($('nm').value.trim(),chosen);save();render();});
+$('reset').addEventListener('click',reset);
+$('helpbtn').addEventListener('click',openHelp);
+$('help').addEventListener('click',e=>{if(e.target.id==='help'||e.target.id==='helpclose')closeHelp();});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!$('help').hidden)closeHelp();});
+
+load();render();
+}
+</script>
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('sw.js').catch(()=>{});});}
+</script>
+</body>
+</html>
