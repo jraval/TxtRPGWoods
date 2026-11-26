@@ -145,7 +145,7 @@ const SHOP=[
 ];
 const ITEMS={potion:['Healing Draught',20,'hp'],greater:['Greater Draught',50,'hp'],ether:['Blue Ether',10,'mp']};
 
-let S=null, mode='intro', chosen='warrior', log=[];
+let S=null, mode='door', chosen='warrior', log=[], trade=null;
 
 function save(){try{localStorage.setItem(KEY,JSON.stringify({S,mode,log:log.slice(-40)}))}catch(e){}}
 function load(){
@@ -161,15 +161,32 @@ function say(t,c=''){log.push({t,c});if(log.length>60)log.shift()}
 function newHero(name,cls){
   const c=CLASSES[cls];
   S={name:name||'Wanderer',cls,lvl:1,xp:0,hp:c.hp,maxHp:c.hp,mp:c.mp,maxMp:c.mp,atk:c.atk,def:c.def,gold:15,
-     inv:{potion:2,ether:1,greater:0},gear:{},loc:'village',flags:{},caveCount:0,foe:null,turn:0,embers:0,beaten:{}};
+     inv:{potion:2,ether:1,greater:0},gear:{},loc:'village',flags:{},caveCount:0,foe:null,turn:0,embers:0,beaten:{},tablet:0};
   log=[];
-  say(`Rain drums on the thatch as ${esc(S.name)} the ${c.label} steps into Hollowmere. The great lantern above the square, the light that has kept the dark woods at bay for three hundred years, hangs cold and empty.`);
+  if(trade==='garb'){S.flags.garb=true;S.inv.potion++;
+    say(`Dressed in plain village wool, ${esc(S.name)} the ${c.label} walks into the square of Hollowmere. Nobody gives you a second glance. Maren has also slipped a Healing Draught into your pocket. Above you, the great lantern hangs cold and empty.`);}
+  else{S.tablet=3;
+    say(`${esc(S.name)} the ${c.label} walks into the square of Hollowmere in strange clothes, tablet in hand. Villagers stop and stare, and a few make the sign against evil. Above you, the great lantern hangs cold and empty.`);
+    say('The tablet\'s battery shows 3 bars. In a fight, its sudden glow could dazzle an enemy, but it will not last forever.','sys');}
   say('Ask Elder Maren what happened. She knows the old story better than anyone.','sys');
   mode='explore';
 }
 
 /* ---------- scene ---------- */
 function scene(){
+  if(!S&&mode==='door'){
+    $('scene').innerHTML=`<svg viewBox="0 0 400 200" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+      <defs><linearGradient id="dl" x1="0" y1="1" x2="0" y2="0"><stop offset="0" stop-color="#ffb15e" stop-opacity=".55"/><stop offset="1" stop-color="#ffb15e" stop-opacity="0"/></linearGradient></defs>
+      <rect width="400" height="200" fill="#2b2a33"/><path d="M0 0 L120 40 L120 160 L0 200Z" fill="#232229"/><path d="M400 0 L280 40 L280 160 L400 200Z" fill="#232229"/>
+      <rect x="120" y="40" width="160" height="120" fill="#34323c"/><path d="M0 200 L120 160 L280 160 L400 200Z" fill="#1d1b20"/>
+      <rect x="176" y="62" width="48" height="98" fill="#1a1410" stroke="#4a3a2a" stroke-width="3"/><circle cx="216" cy="114" r="2.5" fill="#c9a46a"/>
+      <rect x="176" y="157" width="48" height="3" fill="#ffd28a" class="flick"/><path d="M150 200 L176 160 L224 160 L250 200Z" fill="url(#dl)"/>
+      <g fill="#5a4a3a" stroke="#3a2e24"><rect x="20" y="150" width="54" height="40"/><rect x="34" y="122" width="40" height="30"/><rect x="318" y="156" width="60" height="36"/></g>
+      <path d="M20 170 h54 M318 174 h60" stroke="#3a2e24"/><rect x="292" y="60" width="44" height="34" fill="#151a26" stroke="#3a3842" stroke-width="3"/>
+      ${Array.from({length:6},(_,i)=>`<line x1="${298+i*7}" y1="64" x2="${294+i*7}" y2="90" stroke="#5a6f8a" stroke-width="1" opacity=".6"/>`).join('')}</svg>
+      <div class="place">Your new home</div>`;
+    return;
+  }
   const loc=S?S.loc:'village',p=PLACES[loc];let land='';
   if(loc==='village'){
     const e=S?(S.flags.done?4:S.embers):0;
@@ -229,6 +246,13 @@ const EMBER_TEXT={
   3:['Kaltheir crashes into the snow and lies still. The last ember slips free of its frozen heart.',
      'When you set it in the lantern, all three embers fuse into one steady flame. Its light reaches deep into Whisperwood and reveals a red path no one has seen in three hundred years, leading into the Heartwood.']
 };
+function forgeTip(none=''){
+  const avail=SHOP.filter(it=>it.once&&it.req<=S.embers&&!S.gear[it.id]),own=k=>Math.max(0,...SHOP.filter(i=>S.gear[i.id]&&i[k]).map(i=>i[k])),best=k=>avail.filter(i=>i[k]>own(k)).sort((x,y)=>y[k]-x[k])[0];
+  const left=[best('atk'),best('def')].filter(Boolean).map(it=>'the '+it.name);
+  if(!left.length)return none;
+  const list=left.length>1?left.slice(0,-1).join(', ')+' and '+left[left.length-1]:left[0];
+  return ` "Brannoc has ${list} at his forge. You should get ${left.length>1?'them':'it'} before you go."`;
+}
 function talk(){
   const e=S.embers;
   if(!S.flags.quest){S.flags.quest=true;
@@ -236,12 +260,12 @@ function talk(){
     say('"Aldra\'s seal has weakened over the centuries. Three nights ago a crowned shadow rose out of the Sunken Chapel and stole her flame from our lantern. Can you hear the wood? Those are the voices of everyone he has taken. Every night without the flame, the trees move closer."');
     say('"The chapel has been locked for a century. The last keeper fled into Mossdeep Cave. If the key survives, it is there. Grow strong first, child."','sys');}
   else if(S.flags.done)say('"The lantern has never burned so bright," Maren says, smiling. "Aldra would be proud of you."');
-  else if(e===0&&!S.flags.key)say('"Search Mossdeep Cave, beyond Whisperwood. And buy decent armour, I beg you."');
-  else if(e===0)say(`"You have the key! The chapel lies past Whisperwood. ${S.lvl<4?'But you are not ready. Reach level 4 at least.':'Go, and may the old light guide you."'}`);
+  else if(e===0&&!S.flags.key)say('"Search Mossdeep Cave, beyond Whisperwood."'+forgeTip(' "You look well equipped, at least. Keep a few draughts on you."'));
+  else if(e===0)say(`"You have the key! The chapel lies past Whisperwood. ${S.lvl<4?'But you are not ready. Reach level 4 at least."':'Go, and may the old light guide you."'}`+forgeTip());
   else if(e===1){say('Maren stares at the weak little ember. "So that is his game. Orlen split Aldra\'s flame into three embers and gave each to a servant, so no one could take it back in one stroke. He has fled to the Heartwood, the grove where he made his bargain, to regrow his strength."');
-    say('"The second ember will be with Ysolde, the witch of the Ashen Moor. She has served the forest for longer than I have been alive. Brannoc has better steel for you now."','sys');}
-  else if(e===2)say('"Two embers! The last will be in Frostfang Peaks, guarded by Kaltheir, the frost wyrm. Dress warmly, and buy the best armour Brannoc can make."');
-  else say(`"The path to the Heartwood is open. Orlen waits at its centre. ${S.lvl<10?'He is far stronger than anything you have faced. I would reach level 10 first.':'You are as ready as anyone has ever been. End this."'}`);
+    say('"The second ember will be with Ysolde, the witch of the Ashen Moor. She has served the forest for longer than I have been alive."'+forgeTip(),'sys');}
+  else if(e===2)say('"Two embers! The last will be in Frostfang Peaks, guarded by Kaltheir, the frost wyrm. Dress warmly."'+forgeTip(' "I see you already carry Brannoc\'s finest work. Good."'));
+  else say(`"The path to the Heartwood is open. Orlen waits at its centre. ${S.lvl<10?'He is far stronger than anything you have faced. I would reach level 10 first."':'You are as ready as anyone has ever been. End this."'}`+forgeTip());
 }
 
 /* ---------- game logic ---------- */
@@ -285,8 +309,15 @@ function win(){
     say('Orlen staggers. The stolen voices tear free of him one by one, a rush of whispers that turns into laughter, then into silence. The Hollow King crumbles into dry leaves, and the hollow tree finally falls.','good');
     say(`Whisperwood is quiet for the first time in three centuries. In Hollowmere the lantern blazes white-gold, and the villagers fill the square, chanting the name ${esc(S.name)}. THE END.`,'good');}
 }
+function flashTablet(){
+  if(!(S.tablet>0))return;S.tablet--;S.foe.dazzled=true;
+  say(`You hold up the tablet and turn the screen to full brightness. A blinding white glare fills the air, and the ${S.foe.name} reels back, dazzled!`,'good');
+  if(!S.tablet)say('The screen flickers and goes black. The battery is dead.','sys');
+  foeTurn();
+}
 function foeTurn(){
   const f=S.foe,F=FOES[f.key];S.turn++;
+  if(f.dazzled){f.dazzled=false;say(`The ${f.name} stumbles about, still blinking, and cannot attack.`);return;}
   if(f.key==='king'&&!f.enraged&&f.hp<=f.max/2){f.enraged=true;f.atk+=4;say('The Hollow King howls and draws the forest\'s darkness into himself. His blows grow heavier!','hit');}
   if(S.cls==='rogue'&&Math.random()<.2){say(`You slip aside as the ${f.name} strikes at empty air.`);return;}
   let d=Math.max(1,f.atk+rnd(0,2)-S.def),msg=`The ${f.name} hits you for ${d}.`;
@@ -319,7 +350,7 @@ function flee(){
 function buy(it){
   if(S.gold<it.price)return say(`"Come back when you have ${it.price} gold," says the smith.`);
   S.gold-=it.price;
-  if(it.once){S.gear[it.id]=1;S.atk+=it.atk||0;S.def+=it.def||0;}else S.inv[it.id]++;
+  if(it.once){if(S.gear[it.id])return;S.gear[it.id]=1;S.atk+=it.atk||0;S.def+=it.def||0;}else S.inv[it.id]++;
   say(`You buy the ${it.name}.`,'good');
 }
 
@@ -334,18 +365,22 @@ function actions(){
     add('Attack',()=>strike(1,''),`${S.atk} attack`,{main:1});
     add(c.skill,skill,`${c.cost} MP`,{dis:S.mp<c.cost});
     add('Items',()=>{mode='items-combat'},inv);
-    add('Flee',flee,FOES[S.foe.key].boss?'Impossible':'55% chance');return A;}
+    add('Flee',flee,FOES[S.foe.key].boss?'Impossible':'55% chance');
+    if(S.tablet>0)add('Flash the tablet',flashTablet,`Dazzles the enemy for a turn · ${S.tablet} charge${S.tablet>1?'s':''} left`);
+    return A;}
   if(mode==='items'||mode==='items-combat'){
     Object.entries(ITEMS).forEach(([id,[n,amt,st]])=>add(n,()=>use(id),`${S.inv[id]} left · +${amt} ${st.toUpperCase()}`,{dis:!S.inv[id]}));
     add('Back',()=>{mode=mode==='items-combat'?'combat':'explore'});return A;}
   if(mode==='shop'){
-    SHOP.filter(it=>it.req<=e).forEach(it=>add(`${it.name} · ${it.price}g`,()=>buy(it),it.once&&S.gear[it.id]?'Owned':it.note,{dis:it.once&&S.gear[it.id]}));
+    SHOP.filter(it=>it.req<=e&&!(it.once&&S.gear[it.id])).forEach(it=>add(`${it.name} · ${it.price}g`,()=>buy(it),it.note));
     add('Leave the forge',()=>{mode='explore'});return A;}
   const l=S.loc,need=(n)=>S.lvl<n?`Recommended level ${n}`:'';
   if(l==='village'){
     add('Talk to Elder Maren',talk,S.flags.quest?'':'She looks worried',{main:!S.flags.quest});
-    add('Rest at the inn',()=>{if(S.gold<5)return say('"Five gold a night," says the innkeeper, unmoved.');S.gold-=5;S.hp=S.maxHp;S.mp=S.maxMp;say('You sleep by the fire at the Gilded Goose and wake fully restored.','good');},'5 gold · full heal');
-    add("Visit the smith's forge",()=>{mode='shop';say(e?'"Your embers lit my old forge too," Brannoc grins. "I can make finer things now."':'Brannoc the smith wipes soot from his hands. "Buying?"')},e?'New stock available':'');
+    const inn=S.flags.garb?3:5;
+    add('Rest at the inn',()=>{if(S.gold<inn)return say(`"${inn===3?'Three':'Five'} gold a night," says the innkeeper, unmoved.`);S.gold-=inn;S.hp=S.maxHp;S.mp=S.maxMp;say(inn===3?'The innkeeper gives a local the good spot by the fire. You wake fully restored.':'The innkeeper eyes your strange clothes and charges you the stranger\'s rate. Still, you sleep by the fire at the Gilded Goose and wake fully restored.','good');},`${inn} gold · full heal`);
+    const newGear=SHOP.some(it=>it.once&&it.req<=e&&!S.gear[it.id]);
+    add("Visit the smith's forge",()=>{mode='shop';say(!newGear?'"You\'ve got the best I can make for now," Brannoc says. "Bring back another ember and I\'ll forge you something finer. I still have potions, though."':e?'"Your embers lit my old forge too," Brannoc grins. "I can make finer things now."':'Brannoc the smith wipes soot from his hands. "Buying?"')},newGear?(e?'New gear available':''):'Potions only for now');
     add('Walk to Whisperwood',()=>travel('forest'),'',{main:S.flags.quest});
   }else if(l==='forest'){
     add('Explore the woods',explore,'Danger and treasure',{main:1});
@@ -384,6 +419,8 @@ function helpHtml(){
   <li><b>Chapter 3:</b> Climb Frostfang Peaks (level 7+) and defeat Kaltheir the Frost Wyrm (level 8+) for the last ember.</li>
   <li><b>Final chapter:</b> The relit lantern reveals the Heartwood (level 9+). Face the Hollow King (level 10+).</li></ol>
   <p>After each boss, Maren has new advice and the forge gets better gear. Upgrading your weapon and armour each chapter matters a lot.</p>
+  <h3>Your first choice</h3>
+  <ul><li><b>Trade the tablet for village clothes:</b> you blend in, so the inn costs only 3 gold, and Maren adds a free Healing Draught.</li><li><b>Keep the tablet:</b> in combat, <b>Flash the tablet</b> dazzles any enemy, even a boss, so it loses its next attack. The battery has 3 charges and can't be recharged.</li></ul>
   <h3>Classes</h3>
   <div class="scroll"><table><thead><tr><th>Class</th><th class="n">HP</th><th class="n">MP</th><th class="n">Atk</th><th class="n">Def</th><th>Skill</th></tr></thead><tbody>${cl}</tbody></table></div>
   <ul><li><b>Cleave</b> (Warrior): an attack at double strength.</li><li><b>Firebolt</b> (Mage): 12–18 damage plus 3 per level, and it ignores enemy defence.</li><li><b>Backstab</b> (Rogue): a stronger hit with a 50% chance to crit.</li><li><b>Rogues</b> dodge 20% of enemy attacks, and their normal attacks have a 20% chance to crit. A crit does double damage.</li></ul>
@@ -396,7 +433,7 @@ function helpHtml(){
   <h3>Bosses</h3>
   <div class="scroll"><table>${head}<tbody>${bo}</tbody></table></div>
   <h3>Village</h3>
-  <ul><li><b>Gilded Goose inn:</b> 5 gold to restore all HP and MP.</li><li><b>Brannoc's forge</b> stocks better gear as you return embers:</li></ul>
+  <ul><li><b>Gilded Goose inn:</b> restores all HP and MP. It costs 5 gold, or 3 if you traded for village clothes.</li><li><b>Brannoc's forge</b> stocks better gear as you return embers. Weapons and armour can be bought once each, and their bonuses add together. Once you own one, it no longer appears in his list.</li></ul>
   <div class="scroll"><table><thead><tr><th>Item</th><th class="n">Price</th><th>Effect</th><th>Available</th></tr></thead><tbody>${sh}</tbody></table></div>
   <h3>Saving</h3>
   <p>The game saves after every action, in this browser only. <b>New game</b> erases your save.</p>`;
@@ -408,6 +445,29 @@ function closeHelp(){$('help').hidden=true;$('helpbtn').focus();}
 let acts=[];
 function render(){
   scene();
+  if(mode==='door'){
+    $('ui').innerHTML=`<div class="intro">
+      <p>You moved into the old house three weeks ago, and you still haven't finished unpacking. Boxes line the hallway. At the far end, past the linen closet, is a narrow wooden door you have never opened. The realtor said it was only storage. Nobody could find the key.</p>
+      <p>Tonight, with rain drumming on the windows, you notice a thin line of warm orange light glowing under that door.</p>
+      <p>You try the handle. It turns easily, as if it had been waiting for you. Behind the door there is no closet, only a stone staircase spiralling down, much deeper than the house could possibly go. The air smells of pine needles and woodsmoke. Far below, voices are whispering.</p>
+      <p>You start down the stairs. When you look back, the door is gone.</p>
+      <p>At the bottom you step out into cold night air. You are standing at the edge of a village of thatched cottages. Above the square hangs a great iron lantern, dark and empty. An old woman in a grey shawl is watching you, as if she has been expecting someone.</p>
+      <p class="who">"Another one through Aldra's door," she says quietly. "Then you had better hear the old story."</p>
+      <button class="main" type="button" data-i="offer">Continue</button></div>`;
+    return;
+  }
+  if(mode==='offer'){
+    const reply=trade==='garb'
+      ?`<p>You hand over the tablet. Maren turns it over in her fingers, peering at the pictures as they slide past, then tucks it carefully inside her shawl. In return she gives you a rough wool tunic, a cloak and sturdy boots. They fit as if they were made for you.</p><p class="who">"There," she says. "Now you look like one of us. People will be kinder to you for it."</p>`
+      :trade==='keep'?`<p>You hold the tablet a little tighter. Maren shrugs, though her eyes linger on its glow.</p><p class="who">"As you like. But people here will stare, and some will charge you the stranger's price. Keep that light close. A glow like that might startle more than villagers."</p>`:'';
+    $('ui').innerHTML=`<div class="intro">
+      <p>The old woman walks up to you and looks you over, from your strange shoes to the glowing tablet in your hand. The pictures on its screen are still moving.</p>
+      <p class="who">"I am Maren, elder of this village. You cannot walk about Hollowmere dressed like that. Folk will think you are a spirit out of the wood." She opens the bundle under her arm. "I have plain clothes here that will let you pass for one of us. In return, I would like that magic tablet with the pictures in it."</p>
+      ${trade?reply+`<button class="main" type="button" data-i="intro">Listen to her story</button>`
+        :`<div class="acts"><button type="button" data-t="garb">Trade the tablet for the clothes<small>Blend in: cheaper inn and a free Healing Draught</small></button><button type="button" data-t="keep">Keep the tablet<small>Stand out, but its glow can dazzle enemies 3 times</small></button></div>`}
+    </div>`;
+    return;
+  }
   if(mode==='intro'){
     $('ui').innerHTML=`<div class="intro">
       <p>Long ago, before there was a village, there was only the forest, and the forest had a king. Orlen was a mortal lord who feared death more than anything. So he went into the deepest grove and made a bargain with the old spirits of the wood: he gave them his heart, and in return they promised he would never die.</p>
@@ -415,7 +475,7 @@ function render(){
       <p>Three hundred years ago a lantern-keeper named Aldra walked into the woods carrying a flame she had lit from her own heart. The Hollow King could not stand its light. She drove him back into his chapel, sank it into the marsh, and locked the door behind him. She built a village at the forest's edge and hung her flame in a great lantern above the square. As long as it burns, the trees cannot move forward and the King cannot leave.</p>
       <p>Three nights ago the lantern went out.</p>
       <p class="who">Since then the whispers have grown louder, and every morning the forest stands a little closer to Hollowmere.</p>
-      <button class="main" type="button" data-i="1">Take up the quest</button></div>`;
+      <button class="main" type="button" data-i="create">Take up the quest</button></div>`;
     return;
   }
   if(mode==='create'){
@@ -432,11 +492,12 @@ function render(){
     <div class="acts">${(acts=actions()).map((a,i)=>`<button type="button" data-a="${i}" class="${a.main?'main':''}" ${a.dis?'disabled':''}>${a.label}${a.sub?`<small>${a.sub}</small>`:''}</button>`).join('')}</div>`;
   const lg=$('log');lg.scrollTop=lg.scrollHeight;
 }
-function reset(){try{localStorage.removeItem(KEY)}catch(e){}S=null;log=[];mode='intro';render();}
+function reset(){try{localStorage.removeItem(KEY)}catch(e){}S=null;log=[];trade=null;mode='door';render();}
 
 $('ui').addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
-  if(b.dataset.i){mode='create';render();window.scrollTo(0,0);return;}
+  if(b.dataset.t){trade=b.dataset.t;render();return;}
+  if(b.dataset.i){mode=b.dataset.i;render();window.scrollTo(0,0);return;}
   if(b.dataset.c){chosen=b.dataset.c;document.querySelectorAll('[data-c]').forEach(x=>x.setAttribute('aria-pressed',x.dataset.c===chosen));return;}
   if(b.dataset.a){const a=acts[+b.dataset.a];if(a&&!a.dis){a.fn();save();render();}}
 });

@@ -1,6 +1,6 @@
 // Offline support for The Lantern of Hollowmere.
 // Change VERSION whenever you update the game so players get the new files.
-const VERSION = 'hollowmere-v1';
+const VERSION = 'hollowmere-v5';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon.svg'];
 
