@@ -1,17 +1,35 @@
 {
-  "name": "The Lantern of Hollowmere",
-  "short_name": "Hollowmere",
-  "description": "A fantasy text adventure: recover the three embers and relight the lantern of Hollowmere.",
+  "name": "Sorcerer's Revenge",
+  "short_name": "Sorcerer's Revenge",
+  "description": "A fantasy text adventure in nine rounds. Recover the eight embers and defeat the Hollow King.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#0e1b17",
   "theme_color": "#0e1b17",
-  "categories": ["games", "entertainment"],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
   "icons": [
-    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }
