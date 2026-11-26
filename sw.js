@@ -1,6 +1,6 @@
 // Offline support for Sorcerer's Revenge.
 // Change VERSION whenever you update the game so players get the new files.
-const VERSION = 'sorcerers-revenge-v8';
+const VERSION = 'sorcerers-revenge-v9';
 const APP_FILES = ['./', './index.html', './app.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon.svg'];
 
