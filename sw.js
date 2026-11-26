@@ -1,6 +1,6 @@
-// Offline support for The Lantern of Hollowmere.
+// Offline support for Sorcerer's Revenge.
 // Change VERSION whenever you update the game so players get the new files.
-const VERSION = 'hollowmere-v5';
+const VERSION = 'sorcerers-revenge-v7';
 const APP_FILES = ['./', './index.html', './manifest.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon.svg'];
 
