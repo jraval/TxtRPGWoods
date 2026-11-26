@@ -1,7 +1,7 @@
 // Offline support for Sorcerer's Revenge.
 // Change VERSION whenever you update the game so players get the new files.
-const VERSION = 'sorcerers-revenge-v7';
-const APP_FILES = ['./', './index.html', './manifest.webmanifest',
+const VERSION = 'sorcerers-revenge-v8';
+const APP_FILES = ['./', './index.html', './app.webmanifest',
   './icon-192.png', './icon-512.png', './apple-touch-icon.png', './icon.svg'];
 
 self.addEventListener('install', e => {
@@ -32,6 +32,11 @@ self.addEventListener('fetch', e => {
     e.respondWith(fetch(req).then(r => {
       const copy = r.clone(); caches.open(VERSION).then(c => c.put('./index.html', copy)); return r;
     }).catch(() => caches.match('./index.html')));
+    return;
+  }
+  // App settings file: always try the network first so name/icon changes show up.
+  if (url.pathname.endsWith('.webmanifest')) {
+    e.respondWith(fetch(req).catch(() => caches.match(req)));
     return;
   }
   // Everything else from this site: cache first.
